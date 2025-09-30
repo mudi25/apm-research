@@ -1,0 +1,44 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    verbosity: detailed
+  otlphttp/elastic:
+    endpoint: "http://fleet-server:8222"
+    tls:
+      insecure: true
+    headers:
+      Authorization: "Bearer 1pQ5tXPi4VjgvMFqh3zcC4LPOm0sKLuvbZvKt349Sohtqut5cyk21Yo4t4ey6cbJ"
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 512
+  
+  attributes/mongodb-dependency:
+    actions:
+      - key: peer.service
+        action: upsert
+        value: "mongodb"
+
+      - key: span.destination.service.resource
+        action: upsert
+        value: "mongodb"
+
+      - key: db.system
+        action: upsert
+        value: "mongodb"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, attributes/mongodb-dependency]
+      exporters: [debug, otlphttp/elastic]
+      # exporters: [otlphttp/elastic]

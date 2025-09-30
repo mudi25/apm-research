@@ -1,0 +1,35 @@
+version: '3'
+
+tasks:
+  run:binary:
+    desc: run binary '{{.USER_WORKING_DIR}}'
+    dir: '{{.USER_WORKING_DIR}}'
+    dotenv: ['.env']
+    cmds: 
+      - sh -c 'go build -o main main.go && ./main'
+
+  build:image:
+    desc: Build Docker image with custom Dockerfile and image name in '{{.USER_WORKING_DIR}}'
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - |
+        if [ -z "{{.file}}" ]; then
+          echo "[ERROR] Missing required 'file' argument (Dockerfile name)"
+          exit 1
+        fi
+        if [ -z "{{.image}}" ]; then
+          echo "[ERROR] Missing required 'image' argument (Docker image name)"
+          exit 1
+        fi
+        if [ -z "$GITLAB_TOKEN" ]; then
+          echo "[ERROR] GITLAB_TOKEN not set in .env file"
+          exit 1
+        fi
+        echo "[INFO] Building image {{.image}} using {{.file}}"
+        DOCKER_BUILDKIT=1 docker build \
+          --secret id=GIT_AUTH_TOKEN,env=GIT_AUTH_TOKEN \
+          -f {{.file}} \
+          -t {{.image}} \
+          .
+  
+
